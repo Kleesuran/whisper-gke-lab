@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper-api
+spec:
+  replicas: 1 # 我们的“阵列”目前只有 1 个副本 (为了省钱)
+  selector:
+    matchLabels:
+      app: whisper
+  template:
+    metadata:
+      labels:
+        app: whisper
+    spec:
+      containers:
+        - name: whisper-container
+          image: asia-northeast2-docker.pkg.dev/whisper-gke-lab-1774527143/whisper-repo/whisper-api:v1
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "200m" # 申请半个 CPU (e2-medium 的规格)
+              memory: "1Gi" # 申请 1GB 内存 (Whisper 模型需要)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper-service
+spec:
+  type: LoadBalancer # 核心！这会告诉 GCP 为我们分配一个“公网 IP”
+  selector:
+    app: whisper
+  ports:
+    - protocol: TCP
+      port: 80 # 我们从外部访问 80 端口
+      targetPort: 8000 # 转发到容器内部的 8000 端口
